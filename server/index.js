@@ -22,8 +22,10 @@ server.listen(port, () => {
 })
 
 
+const getUniqueId = ((id) => () => String(++id))(1)
+
 const users = {}
-const orders = []
+let orders = []
 
 io.on('connection', (socket) => {
   users[socket.id] = {
@@ -55,11 +57,18 @@ io.on('connection', (socket) => {
   })
 
   socket.on('place order', (order) => {
-    io.emit('new order', { ...order, owner: socket.id })
+    const extendedOrder = { ...order, id: getUniqueId(), owner: socket.id }
+
+    orders.push(extendedOrder)
+    io.emit('new order', extendedOrder)
   })
 
   socket.on('disconnect', () => {
+    const ids = orders.filter(({ owner }) => owner === socket.id).map(({ id }) => id)
+    orders = orders.filter(({ owner }) => owner !== socket.id)
+
     delete users[socket.id]
-    io.emit('user disconnected', { id: socket.id })
+
+    io.emit('user disconnected', { id: socket.id, orders: ids })
   })
 })
