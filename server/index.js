@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
         users[to].socket.emit('private message', { from: socket.id, message })
       }
       else {
-        socket.emit('message error', { to, data, error: 'User not found' })
+        socket.emit('message error', { to, message, error: 'User not found' })
       }
     }
     else {
@@ -61,6 +61,22 @@ io.on('connection', (socket) => {
 
     orders.push(extendedOrder)
     io.emit('new order', extendedOrder)
+  })
+
+  socket.on('request swap', ({ id }) => {
+    const order = orders.find((order) => order.id === id)
+
+    if (order) {
+      if (users[order.owner]) {
+        users[order.owner].socket.emit('new swap request', { from: socket.id, order })
+      }
+      else {
+        socket.emit('request swap failed', { id, error: 'User not found' })
+      }
+    }
+    else {
+      socket.emit('request swap failed', { id, error: 'Order not found' })
+    }
   })
 
   socket.on('disconnect', () => {
